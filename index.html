@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#0a0a0f">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="description" content="Domina 2026 — Tu centro de comando personal para dominar el 2026. Entrenamiento, idiomas, finanzas y análisis.">
+  <title>Domina 2026 — Tu Centro de Comando</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='48' fill='%230a0a0f' stroke='%2300e676' stroke-width='2'/%3E%3Cpath d='M55 20L35 55h15L45 80 65 45H50L55 20z' fill='%2300e676'/%3E%3C/svg%3E">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/styles.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js" defer></script>
+  <script src="js/storage.js" defer></script>
+  <script src="js/training.js" defer></script>
+  <script src="js/languages.js" defer></script>
+  <script src="js/finances.js" defer></script>
+  <script src="js/analytics.js" defer></script>
+  <script src="js/university.js" defer></script>
+  <script src="js/app.js" defer></script>
+</head>
+<body>
+  <div class="app-container">
+
+    <!-- Header -->
+    <header class="app-header">
+      <div class="header-logo">
+        <span class="logo-icon">⚡</span>
+        <h1 class="logo-text">DOMINA <span class="logo-year">2026</span></h1>
+      </div>
+      <button id="settings-btn" class="btn btn-icon btn-ghost" aria-label="Configuración">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="3"></circle>
+          <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"></path>
+        </svg>
+      </button>
+    </header>
+
+    <!-- Sidebar Navigation (Desktop) -->
+    <nav class="sidebar" aria-label="Navegación principal">
+      <div class="nav-list">
+        <button class="nav-item" data-section="training">
+          <span class="nav-icon">🏋️</span>
+          <span class="nav-label">Entrenamiento</span>
+        </button>
+        <button class="nav-item" data-section="languages">
+          <span class="nav-icon">🗣️</span>
+          <span class="nav-label">Idiomas</span>
+        </button>
+        <button class="nav-item" data-section="finances">
+          <span class="nav-icon">💰</span>
+          <span class="nav-label">Finanzas</span>
+        </button>
+        <button class="nav-item" data-section="university">
+          <span class="nav-icon">🎓</span>
+          <span class="nav-label">Universidad</span>
+        </button>
+        <button class="nav-item" data-section="analytics">
+          <span class="nav-icon">📊</span>
+          <span class="nav-label">Análisis</span>
+        </button>
+      </div>
+      <div class="sidebar-footer">
+        <div class="sidebar-date" id="sidebar-date"></div>
+      </div>
+    </nav>
+
+    <!-- Bottom Navigation (Mobile) -->
+    <nav class="bottom-nav" aria-label="Navegación móvil">
+      <button class="nav-item" data-section="training">
+        <span class="nav-icon">🏋️</span>
+        <span class="nav-label">Entreno</span>
+      </button>
+      <button class="nav-item" data-section="languages">
+        <span class="nav-icon">🗣️</span>
+        <span class="nav-label">Idiomas</span>
+      </button>
+      <button class="nav-item" data-section="finances">
+        <span class="nav-icon">💰</span>
+        <span class="nav-label">Finanzas</span>
+      </button>
+      <button class="nav-item" data-section="university">
+        <span class="nav-icon">🎓</span>
+        <span class="nav-label">Universidad</span>
+      </button>
+      <button class="nav-item" data-section="analytics">
+        <span class="nav-icon">📊</span>
+        <span class="nav-label">Análisis</span>
+      </button>
+    </nav>
+
+    <!-- Main Content Area -->
+    <main class="main-content">
+      <section id="section-training" class="app-section active"></section>
+      <section id="section-languages" class="app-section"></section>
+      <section id="section-finances" class="app-section"></section>
+      <section id="section-university" class="app-section"></section>
+      <section id="section-analytics" class="app-section"></section>
+    </main>
+
+  </div>
+
+  <!-- Settings Modal -->
+  <div id="settings-modal" class="modal-overlay hidden">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 class="text-xl font-bold">⚙️ Configuración</h2>
+        <button class="modal-close btn btn-icon btn-ghost" id="settings-close-btn" aria-label="Cerrar">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+
+      <!-- Data Management -->
+      <div class="settings-section">
+        <h3 class="text-sm font-semibold text-muted mb-2" style="text-transform:uppercase;letter-spacing:1px;">Datos</h3>
+        <div class="settings-actions">
+          <button id="export-btn" class="btn btn-ghost" style="width:100%;margin-bottom:8px;">
+            📤 Exportar Datos
+          </button>
+          <button id="import-btn" class="btn btn-ghost" style="width:100%;">
+            📥 Importar Datos
+          </button>
+          <input type="file" id="import-file" accept=".json" style="display:none;">
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
+      <!-- Category Management -->
+      <div class="settings-section">
+        <h3 class="text-sm font-semibold text-muted mb-2" style="text-transform:uppercase;letter-spacing:1px;">Categorías de Gastos</h3>
+        <div id="category-manager">
+          <div id="category-list"></div>
+          <div class="divider"></div>
+          <div class="category-add-form">
+            <h4 class="text-sm font-medium mb-2">Agregar categoría</h4>
+            <div class="category-form-grid">
+              <input type="text" id="cat-name-input" class="input-field" placeholder="Nombre">
+              <input type="text" id="cat-emoji-input" class="input-field" placeholder="Emoji" maxlength="4" style="max-width:80px;">
+              <input type="color" id="cat-color-input" value="#00e676" class="color-picker-input">
+              <button id="cat-add-btn" class="btn btn-emerald" style="white-space:nowrap;">+ Agregar</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</body>
+</html>
