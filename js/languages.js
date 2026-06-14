@@ -105,7 +105,7 @@ window.LanguagesSection = (() => {
     const pulse = current >= 7 ? ' lang-streak-pulse' : '';
     el.innerHTML = `
       <div style="text-align:center;">
-        <div class="text-5xl font-black${pulse}" style="color:var(--cyan);text-shadow:${glow};line-height:1.1;">${extra}${current}</div>
+        <div class="font-black${pulse}" style="font-size:clamp(3rem, 15vw, 4.5rem); color:var(--cyan);text-shadow:${glow};line-height:1.1;">${extra}${current}</div>
         <div class="text-sm text-muted mt-1" style="letter-spacing:1px;text-transform:uppercase;">días consecutivos</div>
         <div class="text-xs text-muted mt-2" style="opacity:0.6;">Récord: ${max} días</div>
       </div>`;

@@ -37,7 +37,7 @@ window.UniversitySection = (() => {
         <div style="font-size:3rem; margin-bottom:12px;">🎓</div>
         <h2 class="text-sm font-semibold text-muted mb-2" style="letter-spacing:2px; text-transform:uppercase;">Días para graduación</h2>
         
-        <div id="uni-countdown-number" style="font-size:5rem; font-weight:900; line-height:1; color:var(--violet); text-shadow:0 0 30px var(--violet-glow); font-variant-numeric:tabular-nums; letter-spacing:-2px;">
+        <div id="uni-countdown-number" style="font-size:clamp(3rem, 15vw, 5rem); font-weight:900; line-height:1; color:var(--violet); text-shadow:0 0 30px var(--violet-glow); font-variant-numeric:tabular-nums; letter-spacing:-2px;">
           ${days}
         </div>
         
