@@ -15,7 +15,23 @@ window.FinancesSection = {
     const monthNames = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
     
     const allTx = Store.finances.getTransactions({});
+    const allCredits = Store.finances.getCredits ? Store.finances.getCredits() : [];
     
+    // Inject credits into allTx as expenses so they are mathematically deducted everywhere
+    allCredits.forEach(c => {
+      if (!c.paymentDate) return;
+      allTx.push({
+        id: 'credit-' + c.id,
+        type: 'expense',
+        amount: c.amount,
+        category: 'Crédito/Deuda',
+        description: `💳 ${c.description || 'Crédito'} (Cuota ${c.installment || '-'})`,
+        date: c.paymentDate,
+        isCreditVirtual: true
+      });
+    });
+    
+
     // Calcular arrastre (rollover) de meses anteriores
     let rolloverBalance = 0;
     if (this._selectedMonth > 5) {
@@ -52,6 +68,15 @@ window.FinancesSection = {
     const monthExpense = monthTx.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
     const monthBalance = monthIncome - monthExpense;
 
+    // Calcular Balance Pre-21 (días 1 al 20)
+    const pre21Tx = monthTx.filter(t => {
+      const d = new Date(t.date + 'T12:00:00');
+      return d.getDate() <= 20;
+    });
+    const pre21Income = pre21Tx.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
+    const pre21Expense = pre21Tx.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
+    const pre21Balance = pre21Income - pre21Expense;
+
     // Categorías del mes seleccionado (calculado dinámicamente para incluir la categoría virtual)
     const catTotals = {};
     monthTx.filter(t => t.type === 'expense').forEach(t => {
@@ -64,6 +89,65 @@ window.FinancesSection = {
     const catMap = {};
     categories.forEach(c => { catMap[c.name] = c; });
     catMap['Mes Anterior'] = { emoji: '🔄', color: '#9e9e9e' };
+
+    // Calculate total global debt
+    const totalDebt = allCredits.reduce((s, c) => s + c.amount, 0);
+
+    // Filter for current month
+    const monthCredits = allCredits.filter(c => {
+      if (!c.paymentDate) return false;
+      let month = -1;
+      let year = -1;
+      
+
+
+      if (c.paymentDate.includes('-')) {
+        const parts = c.paymentDate.split('-');
+        if (parts.length === 3) {
+          year = parseInt(parts[0], 10);
+          month = parseInt(parts[1], 10) - 1; // 0-indexed
+        }
+      } else if (c.paymentDate.includes('/')) {
+        const parts = c.paymentDate.split('/');
+        if (parts.length === 3 && parts[2].length === 4) {
+          year = parseInt(parts[2], 10);
+          month = parseInt(parts[1], 10) - 1;
+        }
+      } else {
+        const d = new Date(c.paymentDate + 'T12:00:00');
+        if (!isNaN(d)) {
+          year = d.getFullYear();
+          month = d.getMonth();
+        }
+      }
+      return month === this._selectedMonth && year === currentYear;
+    });
+
+    const creditsHtml = monthCredits.length === 0 ? `
+      <div class="empty-state" style="padding:16px 0;">
+        <div style="font-size:1.8rem; margin-bottom:4px;">✨</div>
+        <div class="text-sm text-muted">No tienes cuotas que venzan en este mes</div>
+      </div>
+    ` : monthCredits.map(c => {
+      const d = new Date(c.paymentDate + 'T12:00:00');
+      const dateStr = !isNaN(d) ? d.toLocaleDateString('es-PY', { day: 'numeric', month: 'short' }) : c.paymentDate;
+      return `
+      <div class="finances-tx-row" style="padding:12px; border:1px solid rgba(255,255,255,0.05); border-radius:12px; background:var(--bg-secondary);">
+        <div class="finances-tx-info" style="display:flex; flex-direction:column; gap:4px; flex:1;">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <span class="finances-tx-desc" style="font-size:1rem; color:var(--text-primary);">💳 ${c.description || 'Crédito'}</span>
+            <span style="font-size:0.8rem; color:var(--text-muted); background:var(--glass-bg); padding:2px 8px; border-radius:12px; border:1px solid var(--glass-border);">Cuota: ${c.installment || '-'}</span>
+          </div>
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-top:4px;">
+            <span style="font-size:0.85rem; color:var(--danger);">Vence: ${dateStr}</span>
+            <span class="finances-tx-amount expense" style="font-size:1.1rem;">₲ ${c.amount.toLocaleString('es-PY')}</span>
+          </div>
+        </div>
+        <button class="finances-credit-edit-btn" data-id="${c.id}" style="background:rgba(255,255,255,0.1); color:var(--text-primary); border:1px solid rgba(255,255,255,0.2); width:32px; height:32px; border-radius:50%; display:flex; align-items:center; justify-content:center; cursor:pointer; margin-left:12px; flex-shrink:0;" title="Editar">✏️</button>
+        <button class="finances-credit-delete-btn" data-id="${c.id}" style="background:rgba(255,23,68,0.15); color:var(--danger); border:1px solid var(--danger); width:32px; height:32px; border-radius:50%; display:flex; align-items:center; justify-content:center; cursor:pointer; margin-left:8px; font-weight:bold; flex-shrink:0;">✕</button>
+      </div>
+      `;
+    }).join('');
 
     // Selector de meses (solo mostrar de Junio a Diciembre para 2026)
     const availableMonths = [5, 6, 7, 8, 9, 10, 11]; // Junio a Diciembre
@@ -517,9 +601,48 @@ window.FinancesSection = {
 <div class="section-content">
 
   <!-- BALANCE GENERAL (Global) -->
-  <div class="card mb-4 fade-in" style="text-align:center; padding:28px 20px;">
-    <div class="text-xs font-semibold text-muted mb-1" style="letter-spacing:2px; text-transform:uppercase;">Liquidez Total (Todo el año)</div>
-    <div id="finances-balance-amount" class="${balanceTotal >= 0 ? 'positive' : 'negative'}" data-target="${balanceTotal}">₲0</div>
+  <div class="card mb-4 fade-in" style="padding:24px 20px;">
+    <div style="display:flex; justify-content:space-between; align-items:center;">
+      <div style="text-align:left;">
+        <div class="text-xs font-semibold text-muted mb-1" style="letter-spacing:2px; text-transform:uppercase;">Liquidez Total</div>
+        <div id="finances-balance-amount" class="${balanceTotal >= 0 ? 'positive' : 'negative'}" data-target="${balanceTotal}" style="margin:0;">₲0</div>
+      </div>
+      <div style="text-align:right; cursor:pointer;" id="finances-debt-toggle-btn">
+        <div class="text-xs font-semibold text-muted mb-1" style="letter-spacing:2px; text-transform:uppercase;">Deuda Total</div>
+        <div id="finances-total-debt-amount" class="negative" data-target="${totalDebt}" style="font-size:1.6rem; margin:0; color:var(--danger);">₲0</div>
+        <div style="font-size:0.75rem; color:var(--cyan); margin-top:4px;">Ver cuotas ▼</div>
+      </div>
+    </div>
+
+    <!-- Panel de Cuotas Expandible -->
+    <div id="finances-debt-panel" style="display:none; margin-top:20px; border-top:1px solid rgba(255,255,255,0.05); padding-top:16px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+        <span style="font-weight:bold; color:var(--amber);">Cuotas del Mes</span>
+        <button class="btn btn-emerald btn-icon" id="finances-btn-add-credit" style="padding:6px 12px; font-size:0.85rem; font-weight:700;">+ Agregar</button>
+      </div>
+
+      <!-- Formulario Nuevo Crédito -->
+      <div id="finances-credit-form" style="display:none; background:rgba(0,0,0,0.2); border:1px solid rgba(255,255,255,0.05); padding:16px; border-radius:12px; margin-bottom:16px; gap:8px; flex-direction:column;">
+        <input class="input-field" id="finance-credit-desc" type="text" placeholder="Descripción (Ej. Préstamo Auto)">
+        <div style="display:flex; gap:8px;">
+          <input class="input-field" id="finance-credit-installment" type="text" placeholder="Cuota (Ej. 1/12)" style="flex:1;">
+          <input class="input-field" id="finance-credit-amount" type="text" inputmode="numeric" placeholder="Cantidad ₲" style="flex:2;">
+        </div>
+        <div style="display:flex; align-items:center; gap:8px;">
+          <span style="font-size:0.85rem; color:var(--text-secondary); white-space:nowrap;">Vence el:</span>
+          <input class="input-field" id="finance-credit-day" type="date" style="flex:1; color-scheme:dark;">
+        </div>
+        <div style="display:flex; gap:8px; margin-top:8px;">
+          <button class="btn btn-amber" id="finance-credit-save" style="flex:1; font-weight:bold;">Guardar</button>
+          <button class="btn btn-ghost" id="finance-credit-cancel" style="flex:1;">Cancelar</button>
+        </div>
+      </div>
+
+      <!-- Lista de Créditos del Mes -->
+      <div id="finances-credit-list" style="display:flex; flex-direction:column; gap:12px;">
+        ${creditsHtml}
+      </div>
+    </div>
   </div>
 
   <!-- Selector de Meses -->
@@ -543,6 +666,10 @@ window.FinancesSection = {
         <span class="finances-summary-value expense" id="finances-month-expense" data-target="${monthExpense}">₲0</span>
       </div>
     </div>
+    <div style="margin-top:16px; padding-top:12px; border-top:1px solid rgba(255,255,255,0.05); display:flex; flex-direction:column; align-items:center; gap:4px;">
+      <span style="font-size:0.75rem; text-transform:uppercase; letter-spacing:1px; color:var(--text-muted);">Balance Pre-21 (Días 1-20)</span>
+      <span id="finances-month-pre21" style="font-size:1.1rem; font-weight:700; color:var(--amber);" data-target="${pre21Balance}">₲0</span>
+    </div>
   </div>
 
   <!-- ROW: Register Express + Savings -->
@@ -563,6 +690,10 @@ window.FinancesSection = {
           </div>
           <input class="input-field" id="finances-input-desc" type="text" placeholder="Descripción (opcional)" autocomplete="off">
           <input class="input-field" id="finances-input-date" type="date" value="${Store.today()}">
+          <label style="display:flex; align-items:center; gap:8px; font-size:0.85rem; color:var(--text-secondary); margin-top:4px; margin-bottom:8px; cursor:pointer; padding-left:4px;">
+            <input type="checkbox" id="finances-apply-all-months" style="accent-color:var(--amber); width:16px; height:16px;">
+            Aplicar a todos los meses del año
+          </label>
           <div class="finances-form-actions">
             <button class="btn btn-amber" id="finances-btn-save" style="font-weight:700; letter-spacing:1px;">REGISTRAR</button>
             <button class="btn btn-ghost" id="finances-btn-cancel">CANCELAR</button>
@@ -592,6 +723,7 @@ window.FinancesSection = {
       </div>
     </div>
   </div>
+
 
   <!-- ROW: Category Breakdown + Transaction History -->
   <div class="finances-grid-main">
@@ -633,26 +765,42 @@ window.FinancesSection = {
         <span class="chip" data-filter="expense">Gastos</span>
       </div>
       <div class="finances-tx-list" id="finances-tx-list">
-        ${monthTx.length === 0 ? `
-          <div class="empty-state" style="padding:32px 0;">
-            <div style="font-size:2rem; margin-bottom:8px;">📝</div>
-            <div class="text-sm text-muted">No hay transacciones este mes</div>
-          </div>
-        ` : monthTx.map(tx => {
-          const cat = catMap[tx.category] || { emoji: '📦', color: '#888' };
-          const label = tx.description || tx.category;
-          const isIncome = tx.type === 'income';
-          const isVirtual = tx.isVirtual;
-          return `<div class="finances-tx-row" data-type="${tx.type}" data-id="${tx.id}">
-            <div class="finances-tx-icon" style="background:${cat.color}18; border-color:${cat.color}44;">${cat.emoji}</div>
-            <div class="finances-tx-info">
-              <div class="finances-tx-desc">${label}</div>
-              <div class="finances-tx-date">${isVirtual ? 'Día 1 (Arrastre)' : tx.date}</div>
-            </div>
-            <div class="finances-tx-amount ${tx.type}">${isIncome ? '+' : '-'}${Store.formatCurrency(tx.amount)}</div>
-            ${isVirtual ? '' : `<button class="finances-tx-delete" data-txid="${tx.id}" title="Eliminar">×</button>`}
-          </div>`;
-        }).join('')}
+        ${(() => {
+          const mixedTx = [...monthTx];
+          mixedTx.sort((a, b) => b.date.localeCompare(a.date));
+
+          if (mixedTx.length === 0) {
+            return `
+              <div class="empty-state" style="padding:32px 0;">
+                <div style="font-size:2rem; margin-bottom:8px;">📝</div>
+                <div class="text-sm text-muted">No hay transacciones este mes</div>
+              </div>
+            `;
+          }
+
+          return mixedTx.map(tx => {
+            const cat = catMap[tx.category] || { emoji: tx.isCreditVirtual ? '💳' : '📦', color: tx.isCreditVirtual ? '#ff1744' : '#888' };
+            const label = tx.description || tx.category;
+            const isIncome = tx.type === 'income';
+            const isVirtual = tx.isVirtual;
+            const isCreditVirtual = tx.isCreditVirtual;
+            
+            return `<div class="finances-tx-row" data-type="${tx.type}" data-id="${tx.id}" style="${isCreditVirtual ? 'border-left:4px solid var(--danger);' : ''}">
+              <div class="finances-tx-icon" style="background:${cat.color}18; border-color:${cat.color}44;">${cat.emoji}</div>
+              <div class="finances-tx-info">
+                <div class="finances-tx-desc" style="${isCreditVirtual ? 'color:var(--danger); font-weight:bold;' : ''}">${label}</div>
+                <div class="finances-tx-date">${isVirtual ? 'Día 1 (Arrastre)' : (isCreditVirtual ? `Vence: ${tx.date}` : tx.date)}</div>
+              </div>
+              <div class="finances-tx-amount ${tx.type}">${isIncome ? '+' : '-'}${Store.formatCurrency(tx.amount)}</div>
+              ${(isVirtual || isCreditVirtual) ? '' : `
+                <div style="display:flex; gap:4px; margin-left:8px;">
+                  <button class="finances-tx-edit" data-txid="${tx.id}" title="Editar" style="background:transparent; border:none; color:var(--text-primary); cursor:pointer; font-size:1.1rem; padding:4px;">✏️</button>
+                  <button class="finances-tx-delete" data-txid="${tx.id}" title="Eliminar">×</button>
+                </div>
+              `}
+            </div>`;
+          }).join('');
+        })()}
       </div>
     </div>
   </div>
@@ -661,6 +809,12 @@ window.FinancesSection = {
   },
 
   init() {
+    // Wipe old credits ONCE to start fresh as requested by user
+    if (!localStorage.getItem('finances_v14_wiped_credits')) {
+      Store._set('finance_credits', []);
+      localStorage.setItem('finances_v14_wiped_credits', 'true');
+    }
+
     this._currentType = null;
     this._selectedCategory = null;
     this._currentFilter = 'all';
@@ -670,8 +824,9 @@ window.FinancesSection = {
     this._bindForm();
     this._bindSavingsGoal();
     this._bindFilterChips();
-    this._bindTransactionDelete();
+    this._bindTransactionActions();
     this._bindMonthSelector();
+    this._bindCredits();
   },
 
   destroy() {
@@ -699,6 +854,8 @@ window.FinancesSection = {
     const incEl = document.getElementById('finances-month-income');
     const expEl = document.getElementById('finances-month-expense');
     const monthBalEl = document.getElementById('finances-month-balance');
+    const pre21El = document.getElementById('finances-month-pre21');
+    const totalDebtEl = document.getElementById('finances-total-debt-amount');
     if (!balEl) return;
 
     const targets = [
@@ -707,6 +864,12 @@ window.FinancesSection = {
       { el: expEl, target: parseInt(expEl.dataset.target) || 0 },
       { el: monthBalEl, target: parseInt(monthBalEl.dataset.target) || 0 }
     ];
+    if (pre21El) {
+      targets.push({ el: pre21El, target: parseInt(pre21El.dataset.target) || 0 });
+    }
+    if (totalDebtEl) {
+      targets.push({ el: totalDebtEl, target: parseInt(totalDebtEl.dataset.target) || 0 });
+    }
 
     const duration = 1000;
     const startTime = performance.now();
@@ -860,14 +1023,46 @@ window.FinancesSection = {
     }
     const desc = document.getElementById('finances-input-desc')?.value || '';
     const date = document.getElementById('finances-input-date')?.value || Store.today();
+    const applyAll = document.getElementById('finances-apply-all-months')?.checked;
 
-    Store.finances.addTransaction({
-      type: this._currentType,
-      amount: amount,
-      category: this._selectedCategory,
-      description: desc,
-      date: date
-    });
+    const form = document.getElementById('finances-form-modal');
+    const editingId = form ? form.dataset.editingId : null;
+
+    if (editingId) {
+      Store.finances.updateTransaction(editingId, {
+        type: this._currentType,
+        amount: amount,
+        category: this._selectedCategory,
+        description: desc,
+        date: date
+      });
+      delete form.dataset.editingId;
+    } else {
+      if (applyAll) {
+        const [y, m, d] = date.split('-');
+        for (let i = 1; i <= 12; i++) {
+          const monthStr = i.toString().padStart(2, '0');
+          const maxDays = new Date(parseInt(y, 10), i, 0).getDate();
+          const safeDay = Math.min(parseInt(d, 10), maxDays).toString().padStart(2, '0');
+          const iterDate = `${y}-${monthStr}-${safeDay}`;
+          Store.finances.addTransaction({
+            type: this._currentType,
+            amount: amount,
+            category: this._selectedCategory,
+            description: desc,
+            date: iterDate
+          });
+        }
+      } else {
+        Store.finances.addTransaction({
+          type: this._currentType,
+          amount: amount,
+          category: this._selectedCategory,
+          description: desc,
+          date: date
+        });
+      }
+    }
 
     this._closeForm();
     this._showToast('✅ Transacción registrada');
@@ -954,30 +1149,192 @@ window.FinancesSection = {
     });
   },
 
-  _bindTransactionDelete() {
+  _bindTransactionActions() {
     const list = document.getElementById('finances-tx-list');
     if (!list) return;
 
     this._on(list, 'click', (e) => {
-      const btn = e.target.closest('.finances-tx-delete');
-      if (!btn) return;
+      const delBtn = e.target.closest('.finances-tx-delete');
+      const editBtn = e.target.closest('.finances-tx-edit');
+      
+      if (delBtn) {
+        const txid = delBtn.dataset.txid;
+        if (confirm('¿Estás seguro de que quieres eliminar esta transacción?')) {
+          Store.finances.deleteTransaction(txid);
+          const row = delBtn.closest('.finances-tx-row');
+          if (row) {
+            row.style.transition = 'all 0.3s ease';
+            row.style.opacity = '0';
+            row.style.transform = 'translateX(50px)';
+            const t = setTimeout(() => {
+              if (typeof window.App !== 'undefined' && window.App.renderCurrentSection) {
+                window.App.renderCurrentSection();
+              }
+            }, 300);
+            this._timers.push(t);
+          }
+        }
+      } else if (editBtn) {
+        const txid = editBtn.dataset.txid;
+        const allTx = Store.finances.getTransactions({});
+        const tx = allTx.find(t => t.id === txid);
+        if (tx) {
+          this._openForm(tx.type);
+          
+          document.getElementById('finances-input-amount').value = Store.formatCurrency(tx.amount).replace('₲', '');
+          document.getElementById('finances-input-desc').value = tx.description || '';
+          document.getElementById('finances-input-date').value = tx.date || '';
+          
+          const chipContainer = document.getElementById('finances-cat-chips');
+          if (chipContainer) {
+            const chips = chipContainer.querySelectorAll('.finances-cat-chip');
+            chips.forEach(c => {
+              c.classList.remove('active');
+              c.style.background = '';
+              c.style.borderColor = '';
+              c.style.color = '';
+              if (c.dataset.cat === tx.category) {
+                c.classList.add('active');
+                const color = c.style.getPropertyValue('--chip-color');
+                c.style.background = color;
+                c.style.borderColor = color;
+                c.style.color = '#0a0a0f';
+                this._selectedCategory = tx.category;
+              }
+            });
+          }
+          
+          const applyAllRow = document.getElementById('finances-apply-all-months')?.parentElement;
+          if (applyAllRow) applyAllRow.style.display = 'none';
 
-      const txid = btn.dataset.txid;
-      if (confirm('¿Estás seguro de que quieres eliminar esta transacción?')) {
-        Store.finances.deleteTransaction(txid);
-        const row = btn.closest('.finances-tx-row');
-        if (row) {
-          row.style.transition = 'all 0.3s ease';
-          row.style.opacity = '0';
-          row.style.transform = 'translateX(50px)';
-          const t = setTimeout(() => {
+          const form = document.getElementById('finances-form-modal');
+          if (form) form.dataset.editingId = txid;
+        }
+      }
+    });
+  },
+
+  _bindCredits() {
+    this._on('finances-debt-toggle-btn', 'click', () => {
+      const panel = document.getElementById('finances-debt-panel');
+      if (panel) {
+        panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+      }
+    });
+
+    this._on('finances-btn-add-credit', 'click', () => {
+      const form = document.getElementById('finances-credit-form');
+      if (form) {
+        if (form.style.display === 'flex') {
+          form.style.display = 'none';
+        } else {
+          form.style.display = 'flex';
+          delete form.dataset.editingId;
+          document.getElementById('finance-credit-desc').value = '';
+          document.getElementById('finance-credit-installment').value = '';
+          document.getElementById('finance-credit-amount').value = '';
+          document.getElementById('finance-credit-day').value = '';
+        }
+      }
+    });
+
+    this._on('finance-credit-cancel', 'click', () => {
+      const form = document.getElementById('finances-credit-form');
+      if (form) {
+        form.style.display = 'none';
+        delete form.dataset.editingId;
+        document.getElementById('finance-credit-desc').value = '';
+        document.getElementById('finance-credit-installment').value = '';
+        document.getElementById('finance-credit-amount').value = '';
+        document.getElementById('finance-credit-day').value = '';
+      }
+    });
+
+    this._on('finance-credit-save', 'click', () => {
+      const desc = document.getElementById('finance-credit-desc')?.value;
+      const inst = document.getElementById('finance-credit-installment')?.value;
+      const amtRaw = document.getElementById('finance-credit-amount')?.value.replace(/\D/g, '');
+      const amt = parseInt(amtRaw, 10);
+      const day = document.getElementById('finance-credit-day')?.value;
+
+      if (!desc || !amt || !day) {
+        this._showToast('⚠️ Faltan datos del crédito');
+        return;
+      }
+
+      const form = document.getElementById('finances-credit-form');
+      const editingId = form ? form.dataset.editingId : null;
+
+      if (editingId) {
+        Store.finances.updateCredit(editingId, {
+          description: desc,
+          installment: inst,
+          amount: amt,
+          paymentDate: day
+        });
+        delete form.dataset.editingId;
+      } else {
+        Store.finances.addCredit({
+          description: desc,
+          installment: inst,
+          amount: amt,
+          paymentDate: day
+        });
+      }
+
+      if (typeof window.App !== 'undefined' && window.App.renderCurrentSection) {
+        window.App.renderCurrentSection();
+      } else {
+        const container = document.getElementById('section-finances');
+        if (container) {
+          container.innerHTML = this.render();
+          this.destroy();
+          this.init();
+        }
+      }
+    });
+
+    const list = document.getElementById('finances-credit-list');
+    if (list) {
+      this._on(list, 'click', (e) => {
+        const deleteBtn = e.target.closest('.finances-credit-delete-btn');
+        const editBtn = e.target.closest('.finances-credit-edit-btn');
+        
+        if (deleteBtn) {
+          const cid = deleteBtn.dataset.id;
+          if (confirm('¿Eliminar este crédito/deuda?')) {
+            Store.finances.deleteCredit(cid);
             if (typeof window.App !== 'undefined' && window.App.renderCurrentSection) {
               window.App.renderCurrentSection();
             }
-          }, 300);
-          this._timers.push(t);
+          }
+        } else if (editBtn) {
+          const cid = editBtn.dataset.id;
+          const allCredits = Store.finances.getCredits ? Store.finances.getCredits() : [];
+          const credit = allCredits.find(c => c.id === cid);
+          if (credit) {
+            document.getElementById('finance-credit-desc').value = credit.description || '';
+            document.getElementById('finance-credit-installment').value = credit.installment || '';
+            document.getElementById('finance-credit-amount').value = Store.formatCurrency(credit.amount).replace('₲', '');
+            document.getElementById('finance-credit-day').value = credit.paymentDate || '';
+            
+            const form = document.getElementById('finances-credit-form');
+            if (form) {
+              form.dataset.editingId = cid;
+              form.style.display = 'flex';
+            }
+            
+            form.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }
         }
-      }
+      });
+    }
+
+    this._on('finance-credit-amount', 'input', (e) => {
+      let raw = e.target.value.replace(/\D/g, '');
+      if (raw === '') { e.target.value = ''; return; }
+      const num = parseInt(raw, 10);
+      e.target.value = num.toLocaleString('es-PY');
     });
   },
 

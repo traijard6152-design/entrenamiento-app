@@ -1,4 +1,4 @@
-const CACHE_NAME = 'domina2026-v7';
+const CACHE_NAME = 'domina2026-v17';
 
 const ASSETS_TO_CACHE = [
   './',

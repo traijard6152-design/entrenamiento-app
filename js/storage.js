@@ -228,6 +228,7 @@ window.Store = {
     _txKey: 'finance_transactions',
     _goalKey: 'finance_savings_goal',
     _catKey: 'finance_categories',
+    _creditKey: 'finance_credits',
 
     _defaultCategories: [
       { name: 'Comida', emoji: '🍔', color: '#ff6b6b' },
@@ -242,6 +243,49 @@ window.Store = {
 
     _generateId() {
       return Date.now().toString(36) + Math.random().toString(36).substr(2, 9);
+    },
+
+    addCredit(data) {
+      const credits = window.Store._get(this._creditKey) || [];
+      const c = {
+        id: this._generateId(),
+        description: data.description || '',
+        installment: data.installment || '',
+        amount: Math.abs(Number(data.amount) || 0),
+        paymentDate: data.paymentDate || '',
+        createdAt: new Date().toISOString()
+      };
+      credits.push(c);
+      window.Store._set(this._creditKey, credits);
+      return c;
+    },
+
+    deleteCredit(id) {
+      let credits = window.Store._get(this._creditKey) || [];
+      credits = credits.filter(c => c.id !== id);
+      window.Store._set(this._creditKey, credits);
+    },
+
+    updateCredit(id, data) {
+      let credits = window.Store._get(this._creditKey) || [];
+      const index = credits.findIndex(c => c.id === id);
+      if (index !== -1) {
+        credits[index] = {
+          ...credits[index],
+          description: data.description !== undefined ? data.description : credits[index].description,
+          installment: data.installment !== undefined ? data.installment : credits[index].installment,
+          amount: data.amount !== undefined ? Math.abs(Number(data.amount) || 0) : credits[index].amount,
+          paymentDate: data.paymentDate !== undefined ? data.paymentDate : credits[index].paymentDate
+        };
+        window.Store._set(this._creditKey, credits);
+        return credits[index];
+      }
+      return null;
+    },
+
+    getCredits() {
+      const credits = window.Store._get(this._creditKey) || [];
+      return credits.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
     },
 
     addTransaction(data) {
@@ -264,6 +308,24 @@ window.Store = {
       let transactions = window.Store._get(this._txKey) || [];
       transactions = transactions.filter(t => t.id !== id);
       window.Store._set(this._txKey, transactions);
+    },
+
+    updateTransaction(id, data) {
+      let transactions = window.Store._get(this._txKey) || [];
+      const index = transactions.findIndex(t => t.id === id);
+      if (index !== -1) {
+        transactions[index] = {
+          ...transactions[index],
+          type: data.type !== undefined ? data.type : transactions[index].type,
+          amount: data.amount !== undefined ? Math.abs(Number(data.amount) || 0) : transactions[index].amount,
+          category: data.category !== undefined ? data.category : transactions[index].category,
+          description: data.description !== undefined ? data.description : transactions[index].description,
+          date: data.date !== undefined ? data.date : transactions[index].date
+        };
+        window.Store._set(this._txKey, transactions);
+        return transactions[index];
+      }
+      return null;
     },
 
     getTransactions(filters = {}) {
@@ -294,6 +356,7 @@ window.Store = {
 
     getBalance() {
       const all = window.Store._get(this._txKey) || [];
+      const credits = window.Store._get(this._creditKey) || [];
       let balance = 0;
       for (const tx of all) {
         if (tx.type === 'income') {
@@ -301,6 +364,9 @@ window.Store = {
         } else {
           balance -= tx.amount;
         }
+      }
+      for (const c of credits) {
+        balance -= c.amount;
       }
       return balance;
     },
