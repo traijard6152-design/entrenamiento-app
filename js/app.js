@@ -214,4 +214,14 @@ const App = {
   }
 };
 
-document.addEventListener('DOMContentLoaded', () => App.init());
+document.addEventListener('DOMContentLoaded', () => {
+  // Try to lock orientation to portrait
+  try {
+    if (screen.orientation && screen.orientation.lock) {
+      screen.orientation.lock('portrait').catch(err => console.log('Orientation lock failed:', err));
+    }
+  } catch (e) {}
+
+  // Initialize storage first
+  App.init();
+});
