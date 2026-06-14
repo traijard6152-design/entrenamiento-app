@@ -106,13 +106,12 @@ window.FinancesSection = {
 
   .finances-month-selector {
     display: flex;
-    gap: 8px;
-    overflow-x: auto;
-    padding-bottom: 8px;
-    margin-bottom: 16px;
-    scrollbar-width: none;
+    gap: 6px;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin-bottom: 24px;
+    padding-bottom: 4px;
   }
-  .finances-month-selector::-webkit-scrollbar { display: none; }
   .finances-month-tab {
     background: var(--bg-tertiary);
     border: 1px solid var(--glass-border);

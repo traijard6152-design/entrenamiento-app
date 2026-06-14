@@ -632,8 +632,7 @@ window.TrainingSection = (() => {
         <div class="section-content fade-in">
         <style>
           /* ── day tabs ── */
-          .tr-day-tabs{display:flex;gap:4px;overflow-x:auto;padding-bottom:4px;margin-bottom:12px;scrollbar-width:none;}
-          .tr-day-tabs::-webkit-scrollbar{display:none;}
+          .tr-day-tabs{display:flex;gap:4px;flex-wrap:wrap;justify-content:center;padding-bottom:4px;margin-bottom:12px;}
           .tr-day-tab{background:var(--bg-tertiary);border:1px solid var(--glass-border);color:var(--text-secondary);padding:4px 8px;border-radius:var(--radius-full);font-size:0.75rem;font-weight:600;cursor:pointer;white-space:nowrap;transition:all 0.2s;display:flex;flex-direction:column;align-items:center;gap:0px;font-family:inherit;min-width:48px;}
           .tr-day-tab:hover{background:rgba(0,230,118,0.1);color:var(--emerald);}
           .tr-day-tab.active{background:var(--emerald);color:#000;border-color:var(--emerald);box-shadow:0 0 10px var(--emerald-glow);}
