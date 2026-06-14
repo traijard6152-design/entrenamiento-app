@@ -1429,3 +1429,25 @@ select.input-field {
     color: black;
   }
 }
+
+/* --- Force Portrait Overlay --- */
+@media screen and (orientation: landscape) and (max-height: 600px) {
+  body::before {
+    content: "📱 Por favor, gira tu teléfono a modo vertical para usar la aplicación.";
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: var(--bg-primary);
+    color: var(--emerald);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+    font-weight: bold;
+    text-align: center;
+    padding: 2rem;
+    z-index: 999999;
+  }
+  .app-container {
+    display: none !important;
+  }
+}
