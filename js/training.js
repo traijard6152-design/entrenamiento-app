@@ -19,6 +19,44 @@ window.TrainingSection = (() => {
   let _restInterval  = null;
   let _restRunning   = false;
 
+  /* ── stopwatch timer state ── */
+  let _swSeconds = 0;
+  let _swInterval = null;
+  let _swRunning = false;
+
+  const formatStopwatch = (totalSeconds) => {
+    const h = Math.floor(totalSeconds / 3600).toString().padStart(2, '0');
+    const m = Math.floor((totalSeconds % 3600) / 60).toString().padStart(2, '0');
+    const s = (totalSeconds % 60).toString().padStart(2, '0');
+    return `${h}:${m}:${s}`;
+  };
+
+  const updateStopwatchDisplay = () => {
+    const el = document.getElementById('tr-sw-display');
+    if (el) el.textContent = formatStopwatch(_swSeconds);
+  };
+
+  const startStopwatch = () => {
+    if (_swRunning) return;
+    _swRunning = true;
+    _swInterval = setInterval(() => {
+      _swSeconds++;
+      updateStopwatchDisplay();
+    }, 1000);
+  };
+
+  const pauseStopwatch = () => {
+    if (!_swRunning) return;
+    _swRunning = false;
+    clearInterval(_swInterval);
+  };
+
+  const resetStopwatch = () => {
+    pauseStopwatch();
+    _swSeconds = 0;
+    updateStopwatchDisplay();
+  };
+
   const MONTH_MIN = 5;
   const MONTH_MAX = 11;
 
@@ -498,6 +536,7 @@ window.TrainingSection = (() => {
     const groupsHtml = day.groups.map((group, groupIdx) => {
       const exHtml = group.exercises.map((ex, localIdx) => {
         const gIdx = exGlobalIdx++;
+        const displayNum = gIdx + 1;
         const weight = getWeight(day.id, gIdx);
         const setsList = Array.from({length: ex.sets}, (_, i) => `
           <li class="tr-set-item" data-set="${i}">
@@ -511,7 +550,7 @@ window.TrainingSection = (() => {
           <div class="tr-exercise-card" id="tr-ex-${day.id}-${gIdx}">
             <div class="tr-ex-header" style="display:flex; justify-content:space-between; align-items:center; cursor:default;">
               <div style="display:flex; flex-direction:column; gap:2px; flex:1;">
-                <div class="tr-ex-name" id="tr-ex-name-text-${day.id}-${gIdx}">${ex.name}</div>
+                <div class="tr-ex-name" id="tr-ex-name-text-${day.id}-${gIdx}"><span style="color:var(--emerald); opacity:0.8; margin-right:4px;">${displayNum}.</span>${ex.name}</div>
                 <div class="tr-ex-meta" id="tr-ex-meta-text-${day.id}-${gIdx}" style="align-self:flex-start; margin-top:4px;">${ex.sets} × ${ex.reps}</div>
               </div>
               <button class="tr-edit-btn btn btn-icon btn-ghost" data-dayidx="${dayIdx}" data-groupidx="${groupIdx}" data-localidx="${localIdx}" data-exidx="${gIdx}" title="Editar Ejercicio" style="font-size:14px; padding:6px; color:var(--text-muted); cursor:pointer;">✏️</button>
@@ -557,18 +596,22 @@ window.TrainingSection = (() => {
           </div>`;
       }).join('');
 
+      const isOpen = groupIdx === 0 ? 'open' : '';
       return `
-        <div class="tr-group" data-dayidx="${dayIdx}" data-groupidx="${groupIdx}">
-          <div class="tr-group-title" style="display:flex; justify-content:space-between; align-items:center;">
-            <span>${group.name}</span>
+        <details class="tr-group" data-dayidx="${dayIdx}" data-groupidx="${groupIdx}" ${isOpen}>
+          <summary class="tr-group-title" style="display:flex; justify-content:space-between; align-items:center; cursor:pointer; list-style:none;">
+            <span style="display:flex; align-items:center; gap:8px;">
+              <span class="tr-group-chevron">▶</span>
+              ${group.name}
+            </span>
             <button class="tr-add-ex-btn" data-dayidx="${dayIdx}" data-groupidx="${groupIdx}" style="background:transparent; border:none; color:var(--emerald); cursor:pointer; font-size:0.8rem; font-weight:600; display:flex; align-items:center; gap:4px; font-family:inherit; padding:4px 8px; border-radius:4px;">
               <span>+ Añadir</span>
             </button>
-          </div>
-          <div class="tr-group-exercises">
+          </summary>
+          <div class="tr-group-exercises" style="margin-top:12px;">
             ${exHtml}
           </div>
-        </div>`;
+        </details>`;
     }).join('');
 
     return groupsHtml;
@@ -657,7 +700,10 @@ window.TrainingSection = (() => {
           .tr-day-sub{font-size:0.8rem;color:var(--text-muted);margin-top:2px;}
           /* ── group ── */
           .tr-group{margin-bottom:24px;}
-          .tr-group-title{font-size:0.8rem;font-weight:700;text-transform:uppercase;letter-spacing:2px;color:var(--text-muted);margin-bottom:12px;padding-bottom:6px;border-bottom:1px solid var(--glass-border);}
+          details.tr-group summary::-webkit-details-marker { display:none; }
+          .tr-group-chevron { transition: transform 0.2s ease; font-size: 0.8rem; color: var(--emerald); }
+          details.tr-group[open] .tr-group-chevron { transform: rotate(90deg); }
+          .tr-group-title{font-size:0.8rem;font-weight:700;text-transform:uppercase;letter-spacing:2px;color:var(--text-muted);margin-bottom:0px;padding-bottom:6px;border-bottom:1px solid var(--glass-border);user-select:none;}
           .tr-group-exercises{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;}
           /* ── exercise card ── */
           .tr-exercise-card{background:var(--glass-bg);border:1px solid var(--glass-border);border-radius:14px;overflow:hidden;transition:border-color 0.2s;}
@@ -734,6 +780,17 @@ window.TrainingSection = (() => {
 
         <!-- Day tabs -->
         <div class="tr-day-tabs" id="tr-day-tabs">${dayTabsHtml}</div>
+
+        <!-- Stopwatch timer widget -->
+        <div class="tr-stopwatch-widget card fade-in" style="padding:16px; margin-bottom:20px; text-align:center; display:flex; flex-direction:column; align-items:center; gap:8px;">
+          <div style="font-size:0.75rem; text-transform:uppercase; letter-spacing:2px; color:var(--text-muted);">Tiempo de Sesión</div>
+          <div id="tr-sw-display" style="font-size:2.5rem; font-weight:900; font-variant-numeric:tabular-nums; letter-spacing:2px; color:var(--emerald); text-shadow:0 0 15px var(--emerald-glow); line-height:1;">00:00:00</div>
+          <div style="display:flex; gap:12px; margin-top:4px;">
+            <button id="tr-sw-play" class="btn btn-emerald" style="padding:6px 16px; font-weight:700;">▶ Iniciar</button>
+            <button id="tr-sw-pause" class="btn btn-ghost" style="padding:6px 16px; font-weight:700; color:var(--amber); border-color:var(--amber);">⏸ Pausa</button>
+            <button id="tr-sw-reset" class="btn btn-ghost" style="padding:6px 16px; font-weight:700; color:var(--danger); border-color:var(--danger);">🔄 Cero</button>
+          </div>
+        </div>
 
         <!-- Rest timer widget -->
         <div class="tr-rest-widget">
@@ -884,11 +941,16 @@ window.TrainingSection = (() => {
         const secs = parseInt(e.currentTarget.dataset.secs, 10);
         startRestTimer(secs);
       });
-      on('', 'click', () => {}); // placeholder
       document.querySelectorAll('.tr-rest-stop').forEach(btn => {
         btn.addEventListener('click', stopRestTimer);
         _listeners.push({ el: btn, evt: 'click', fn: stopRestTimer });
       });
+
+      /* stopwatch bindings */
+      updateStopwatchDisplay();
+      on('tr-sw-play', 'click', startStopwatch);
+      on('tr-sw-pause', 'click', pauseStopwatch);
+      on('tr-sw-reset', 'click', resetStopwatch);
 
       this._bindExerciseEvents();
     },

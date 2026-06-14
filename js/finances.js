@@ -144,7 +144,8 @@ window.FinancesSection = {
 
   .finances-summary-row {
     display: flex;
-    gap: 24px;
+    gap: 16px;
+    flex-wrap: wrap;
     justify-content: center;
     margin-top: 12px;
   }
@@ -153,6 +154,8 @@ window.FinancesSection = {
     flex-direction: column;
     align-items: center;
     gap: 2px;
+    flex: 1 1 auto;
+    min-width: 80px;
   }
   .finances-summary-label {
     font-size: 0.75rem;
@@ -161,7 +164,7 @@ window.FinancesSection = {
     color: var(--text-muted);
   }
   .finances-summary-value {
-    font-size: 1.25rem;
+    font-size: clamp(0.9rem, 3.5vw, 1.25rem);
     font-weight: 700;
   }
   .finances-summary-value.income { color: var(--success); }
