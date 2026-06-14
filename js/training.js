@@ -632,11 +632,11 @@ window.TrainingSection = (() => {
         <div class="section-content fade-in">
         <style>
           /* ── day tabs ── */
-          .tr-day-tabs{display:flex;gap:6px;overflow-x:auto;padding-bottom:8px;margin-bottom:16px;scrollbar-width:none;}
+          .tr-day-tabs{display:flex;gap:4px;overflow-x:auto;padding-bottom:4px;margin-bottom:12px;scrollbar-width:none;}
           .tr-day-tabs::-webkit-scrollbar{display:none;}
-          .tr-day-tab{background:var(--bg-tertiary);border:1px solid var(--glass-border);color:var(--text-secondary);padding:6px 12px;border-radius:var(--radius-full);font-size:0.8rem;font-weight:600;cursor:pointer;white-space:nowrap;transition:all 0.2s;display:flex;flex-direction:column;align-items:center;gap:2px;font-family:inherit;min-width:60px;}
+          .tr-day-tab{background:var(--bg-tertiary);border:1px solid var(--glass-border);color:var(--text-secondary);padding:4px 8px;border-radius:var(--radius-full);font-size:0.75rem;font-weight:600;cursor:pointer;white-space:nowrap;transition:all 0.2s;display:flex;flex-direction:column;align-items:center;gap:0px;font-family:inherit;min-width:48px;}
           .tr-day-tab:hover{background:rgba(0,230,118,0.1);color:var(--emerald);}
-          .tr-day-tab.active{background:var(--emerald);color:#000;border-color:var(--emerald);box-shadow:0 0 16px var(--emerald-glow);}
+          .tr-day-tab.active{background:var(--emerald);color:#000;border-color:var(--emerald);box-shadow:0 0 10px var(--emerald-glow);}
           /* ── stats ── */
           .tr-stats-row{display:flex;justify-content:center;gap:28px;flex-wrap:wrap;}
           .tr-stat{display:flex;flex-direction:column;align-items:center;gap:2px;}
@@ -660,7 +660,6 @@ window.TrainingSection = (() => {
           .tr-group{margin-bottom:24px;}
           .tr-group-title{font-size:0.8rem;font-weight:700;text-transform:uppercase;letter-spacing:2px;color:var(--text-muted);margin-bottom:12px;padding-bottom:6px;border-bottom:1px solid var(--glass-border);}
           .tr-group-exercises{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;}
-          @media(max-width:700px){.tr-group-exercises{grid-template-columns:1fr;}}
           /* ── exercise card ── */
           .tr-exercise-card{background:var(--glass-bg);border:1px solid var(--glass-border);border-radius:14px;overflow:hidden;transition:border-color 0.2s;}
           .tr-exercise-card.done{border-color:var(--emerald);box-shadow:0 0 16px var(--emerald-glow);}

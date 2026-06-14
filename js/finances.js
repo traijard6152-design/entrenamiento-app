@@ -117,9 +117,9 @@ window.FinancesSection = {
     background: var(--bg-tertiary);
     border: 1px solid var(--glass-border);
     color: var(--text-secondary);
-    padding: 6px 14px;
+    padding: 4px 10px;
     border-radius: var(--radius-full);
-    font-size: 0.85rem;
+    font-size: 0.75rem;
     font-weight: 600;
     cursor: pointer;
     white-space: nowrap;
